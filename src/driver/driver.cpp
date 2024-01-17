@@ -319,10 +319,7 @@ void Driver::syncCamConfig() {
     parameters.gain_boost = false; // no gain_boost mode available (TODO: expose this better)
   }
 
-  if ((is_err = is_Gamma(cam_handle_, IS_GAMMA_CMD_GET, (void*) &parameters.software_gamma,
-      sizeof(parameters.software_gamma))) != IS_SUCCESS) {
-    throw_fetch_error("software_gamma", is_err);
-  }
+  
 
   if ((is_err = is_SetAutoParameter(cam_handle_,
       IS_GET_ENABLE_AUTO_SENSOR_SHUTTER, &pval1, &pval2)) != IS_SUCCESS &&
@@ -1870,7 +1867,7 @@ INT Driver::name2colormode(const std::string& name) {
 
 
 const std::string Driver::colormode2name(INT mode) {
-  for (const std::pair<std::string, INT>& value: COLOR_DICTIONARY) {
+  for (const std::pair< const std::string, INT>& value: COLOR_DICTIONARY) {
     if (value.second == mode) {
       return value.first;
     }

@@ -114,7 +114,7 @@ void log_nested_exception(
       throw;
   } catch (const std::exception& e) {
     switch(log_level) {
-      case WARN: { RCLCPP_WARN(logger, " %s- ", std::string(level, ' ').c_str(), e.what()); break; }
+      case WARN: { RCLCPP_WARN(logger, " %s- %s", std::string(level, ' ').c_str(), e.what()); break; }
       case ERROR: { RCLCPP_ERROR(logger, " %s- %s", std::string(level, ' ').c_str(), e.what()); break; }
       case FATAL: { RCLCPP_FATAL(logger, " %s- %s", std::string(level, ' ').c_str(), e.what()); break; }
     }
@@ -525,7 +525,7 @@ bool Node::fillMsgData(sensor_msgs::msg::Image& img) const {
   // TODO: this validation should occur back in the driver
   INT expected_row_stride = cam_aoi_.s32Width * bits_per_pixel_/8;
   if (cam_buffer_pitch_ < expected_row_stride) {
-    RCLCPP_ERROR(
+    /*RCLCPP_ERROR(
         this->get_logger(),
         "Camera buffer pitch (%s) is smaller than expected for [%s]: width (%s) * bytes per pixel (%s) = %s",
         cam_buffer_pitch_,
@@ -533,7 +533,7 @@ bool Node::fillMsgData(sensor_msgs::msg::Image& img) const {
         cam_aoi_.s32Width,
         bits_per_pixel_/8,
         expected_row_stride
-    );
+    );*/
     return false;
   }
 
@@ -544,7 +544,7 @@ bool Node::fillMsgData(sensor_msgs::msg::Image& img) const {
   img.step = img.width * static_cast<unsigned int>(sensor_msgs::image_encodings::numChannels(img.encoding)) * static_cast<unsigned int>(sensor_msgs::image_encodings::bitDepth(img.encoding))/8;
   img.data.resize(img.height * img.step);
 
-  RCLCPP_DEBUG(
+  /*RCLCPP_DEBUG(
       this->get_logger(),
       "Allocated ROS image buffer for [%s]:\n  size: %s\n  width: %s\n  height: %s\n  step: %s\n  encoding: %s\n",
       node_parameters_.camera_name.c_str(),
@@ -553,7 +553,7 @@ bool Node::fillMsgData(sensor_msgs::msg::Image& img) const {
       img.height,
       img.step,
       img.encoding
-  );
+  );*/
 
   const std::function<void*(void*, void*, size_t)> unpackCopy = getUnpackCopyFunc(color_mode_);
 
@@ -734,7 +734,7 @@ rcl_interfaces::msg::SetParametersResult Node::onParameterChange(std::vector<rcl
    *********************/
   if (!isConnected()) {
     std::ostringstream ostream;
-    RCLCPP_WARN(this->get_logger(), "cannot reconfigure parameters [camera not connected]");
+    //RCLCPP_WARN(this->get_logger(), "cannot reconfigure parameters [camera not connected]");
     result.successful = false;
     return result;
   }
@@ -791,11 +791,11 @@ rcl_interfaces::msg::SetParametersResult Node::onParameterChange(std::vector<rcl
       else if (parameter.get_name() == "flip_vertical" ) { new_parameters.flip_vertical = parameter.as_bool(); }
       else if (parameter.get_name() == "flip_horizontal" ) { new_parameters.flip_horizontal = parameter.as_bool(); }
       else {
-        RCLCPP_WARN(this->get_logger(), "[%s] is not a reconfigurable parameter, rejecting.", parameter.get_name().c_str());
+        RCLCPP_WARN(this->get_logger(), "%s is not a reconfigurable parameter, rejecting.", parameter.get_name().c_str());
         result.successful = false;
       }
     } catch(const rclcpp::ParameterTypeException& e) {
-      RCLCPP_WARN(this->get_logger(), "Invalid parameter value type [%s] for parameter [%s], rejecting.", parameter.get_type_name().c_str(), parameter.get_name().c_str());
+      RCLCPP_WARN(this->get_logger(), "Invalid parameter value type %s for parameter %s, rejecting.", parameter.get_type_name().c_str(), parameter.get_name().c_str());
       result.successful = false;
     }
   }
@@ -816,7 +816,7 @@ rcl_interfaces::msg::SetParametersResult Node::onParameterChange(std::vector<rcl
       throw std::invalid_argument(ostream.str());
     }
   } catch (const std::invalid_argument& e) {
-    RCLCPP_WARN(this->get_logger(), "incoming parameter configuration invalid, rejecting\n%s", e.what());
+    //RCLCPP_WARN(this->get_logger(), "incoming parameter configuration invalid, rejecting\n%s", e.what());
     result.successful = false;
     return result;
   }
@@ -854,7 +854,7 @@ rcl_interfaces::msg::SetParametersResult Node::onParameterChange(std::vector<rcl
     // restore original 'working' parameters
     std::ostringstream ostream;
     ostream << "failed to reconfigure parameters on camera, rejecting [" << e.what() << "]";
-    RCLCPP_WARN(this->get_logger(), ostream.str().c_str());
+    //RCLCPP_WARN(this->get_logger(), ostream.str().c_str());
     try {
       std::lock_guard<std::mutex> guard{parameter_mutex_};  // setCamParams updates camera_parameters_
       setCamParams(original_parameters);
@@ -952,8 +952,14 @@ rclcpp::Time Node::getImageTimestamp() {
 
 rclcpp::Time Node::getImageTickTimestamp() {
   uint64_t tick;
-  if(getClockTick(&tick)) {
-    return init_ros_time_ + rclcpp::Duration(double(tick - init_clock_tick_)*1e-7);
+  if (getClockTick(&tick)) {
+    
+    double time = (double(tick - init_clock_tick_) * 1e7); 
+    int32_t seconds = static_cast<int32_t>(time);
+    double nanoseconds = (time - double(seconds)); 
+    double nanos = nanoseconds * 1e9; 
+
+    return init_ros_time_ + rclcpp::Duration(seconds, static_cast<uint32_t>(nanos));
   }
   return this->now();
 }
@@ -967,7 +973,7 @@ void Node::printConfiguration() const {
   ostream << "UEye Camera Configuration\n\n";
   ostream << node_parameters_.to_str() << "\n";
   ostream << camera_parameters_.to_str();
-  RCLCPP_INFO(this->get_logger(), ostream.str());
+  RCLCPP_INFO(this->get_logger(), "%s", ostream.str().c_str());
 }
 
 void Node::handleTimeout() {
@@ -977,7 +983,7 @@ void Node::handleTimeout() {
   //                overkill to create a ueye_cam_interfaces package for a single msg.
   //  - Diagnostics - would be the best option, but it's yet more effort.
   timeout_count_++;
-  RCLCPP_WARN(get_logger(), "UEye: timed out [%s]", timeout_count_);
+  RCLCPP_WARN(get_logger(), "UEye: timed out [%lld]", timeout_count_);
 };
 
 } // namespace ueye_cam

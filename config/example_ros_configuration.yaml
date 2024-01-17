@@ -6,12 +6,13 @@
 ueye_cam:
   ros__parameters:
     # Node parameters: for defaults, ueye_cam/node_parameters.hpp
-    camera_name: froody
-    frame_name: froody
-    camera_id: 0                # 0 : ANY_CAMERA
+    camera_name: ids_ui_1007xs
+    frame_name: ids_ui_1007xs_frame
+    camera_id: 1                # 0 : ANY_CAMERA
     # Camera parameters: for defaults, ueye_cam/camera_parameters.hpp
     auto_frame_rate: false
-    frame_rate: 2.0
-    color_mode: rgb8
-    auto_gain: true
-    auto_white_balance: true
+    frame_rate: 15.0
+    color_mode: bgr8
+    auto_gain: false
+    auto_white_balance: false
+    auto_exposure: false
