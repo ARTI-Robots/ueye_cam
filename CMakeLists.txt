@@ -34,7 +34,10 @@ find_package(image_transport REQUIRED)
 find_package(rcl_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
 find_package(sensor_msgs REQUIRED)
+
 
 ##############################################################################
 # UEye Drivers
@@ -108,6 +111,9 @@ ament_export_dependencies(
   image_transport
   rcl_interfaces
   rclcpp
+  rclcpp_action
+  rclcpp_components
+  rclcpp_lifecycle
   sensor_msgs
 )
 ament_package()

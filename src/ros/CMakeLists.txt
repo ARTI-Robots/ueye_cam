@@ -19,6 +19,8 @@ ament_target_dependencies(
     # camera_info_manager
     image_transport
     rclcpp
+    rclcpp_action
+    rclcpp_lifecycle
     rclcpp_components
     sensor_msgs
 )

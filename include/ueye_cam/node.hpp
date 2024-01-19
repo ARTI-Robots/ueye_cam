@@ -44,6 +44,7 @@
 
 #include <image_transport/image_transport.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/srv/set_camera_info.hpp>
@@ -61,7 +62,7 @@ namespace ueye_cam {
 ** Node Interface
 *****************************************************************************/
 
-class Node final : public rclcpp::Node, public Driver
+class Node final : public rclcpp_lifecycle::LifecycleNode, public Driver
 {
 public:
   /********************************************
@@ -74,6 +75,16 @@ public:
   Node(const Node & c) = delete;
   Node & operator=(const Node & c) = delete;
 
+  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+  on_configure(const rclcpp_lifecycle::State&) override;
+
+  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+  on_activate(const rclcpp_lifecycle::State&) override;
+
+  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+  on_deactivate(const rclcpp_lifecycle::State&) override;
+
+  
 private:
   /********************************************
    * Convenience Typedefs

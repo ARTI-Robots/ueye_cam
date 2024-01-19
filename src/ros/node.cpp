@@ -54,6 +54,7 @@
 #include <camera_calibration_parsers/parse.hpp>
 #include <rcl_interfaces/msg/parameter_type.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <ueye_cam/camera_driver.hpp>
 #include <sensor_msgs/image_encodings.hpp>
@@ -137,7 +138,7 @@ void log_nested_exception(
  *****************************************************************************/
 
 Node::Node(const rclcpp::NodeOptions & options):
-    rclcpp::Node("ueye_cam", options),
+    rclcpp_lifecycle::LifecycleNode("ueye_cam", options),
     node_parameters_(),
     ros_cam_pub_(),
     ros_image_(),
@@ -154,10 +155,7 @@ Node::Node(const rclcpp::NodeOptions & options):
 {
   ros_image_.is_bigendian = (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__); // TODO: what about MS Windows?
 
-  /******************************************
-   * Node Parameters
-   ******************************************/
-  NodeParameters default_node_parameters;
+NodeParameters default_node_parameters;
   declareROSNodeParameters(default_node_parameters);
   try {
     node_parameters_ = fetchROSNodeParameters();
@@ -230,7 +228,6 @@ Node::Node(const rclcpp::NodeOptions & options):
     return;
   }
 
-  // Set parameters on the camera. Surrender with useful information to the user if it fails.
   try {
     setCamParams(camera_parameters);
   } catch (const std::runtime_error& e) {
@@ -247,24 +244,10 @@ Node::Node(const rclcpp::NodeOptions & options):
     return;
   }
 
-  startFrameGrabber();   // Ready to go!
-  printConfiguration();  // debugging
-
-  /******************************************
-   * Dynamic Parameters
-   ******************************************/
-  // Could be moved up front and save on one round of configuration, but better
-  // here since it lets a batched configuration be pre-tested that will fail
-  // hard and fast with useful warning messages.
-
-  // Dashing: set_on_parameters_set_callback
-  // Foxy: add_on_set_parameters_callback
-  // Handler needs to be alive to keep the callback functional
-  parameter_callback_handler_ = this->add_on_set_parameters_callback(
-      std::bind(&Node::onParameterChange, this, std::placeholders::_1)
-  );
 }
-
+  /******************************************
+   * Node Parameters
+   ******************************************/
 Node::~Node()
 {
   if (isConnected()) {
@@ -279,13 +262,52 @@ Node::~Node()
   }
 }
 
+Node::CallbackReturn Node::on_configure(const rclcpp_lifecycle::State&)
+{
+  printConfiguration();
+  return CallbackReturn::SUCCESS;
+}
+
+
+Node::CallbackReturn Node::on_activate(const rclcpp_lifecycle::State&)
+{
+  startFrameGrabber();  // Start frame grabbing
+
+    return CallbackReturn::SUCCESS;
+}
+
+Node::CallbackReturn Node::on_deactivate(const rclcpp_lifecycle::State&)
+{
+    stopFrameGrabber();  // Stop frame grabbing
+
+    return CallbackReturn::SUCCESS;
+}
+
+
+    // debugging
+
+  /******************************************
+   * Dynamic Parameters
+   ******************************************/
+  // Could be moved up front and save on one round of configuration, but better
+  // here since it lets a batched configuration be pre-tested that will fail
+  // hard and fast with useful warning messages.
+
+  // Dashing: set_on_parameters_set_callback
+  // Foxy: add_on_set_parameters_callback
+  // Handler needs to be alive to keep the callback functional
+
+
+
+
 /*****************************************************************************
  ** Initialisation - ROS / Camera
  *****************************************************************************/
 
 void Node::setupROSCommunications() {
+  auto node = std::make_shared<rclcpp::Node>(this->get_name(), this->get_namespace());
   // Setup publishers, subscribers, and services
-  auto local_node = this->create_sub_node(this->get_name());
+  auto local_node = node->create_sub_node(this->get_name());
   image_transport::ImageTransport it(local_node);
   ros_cam_pub_ = it.advertiseCamera(std::string(this->get_name()) + "/" + node_parameters_.camera_name + "/" + node_parameters_.topic_name, 1);
   set_cam_info_srv_ = local_node->create_service<sensor_msgs::srv::SetCameraInfo>(
@@ -629,6 +651,7 @@ void Node::declareROSCameraParameters(const CameraParameters& defaults) {
   this->declare_parameter("software_gamma",            rclcpp::ParameterValue(defaults.software_gamma));
   this->declare_parameter("auto_exposure",             rclcpp::ParameterValue(defaults.auto_exposure));
   this->declare_parameter("auto_exposure_reference",   rclcpp::ParameterValue(defaults.auto_exposure_reference));
+  this->declare_parameter("focus_value",               rclcpp::ParameterValue(defaults.focus_value));
   this->declare_parameter("exposure",                  rclcpp::ParameterValue(defaults.exposure));
   this->declare_parameter("auto_white_balance",        rclcpp::ParameterValue(defaults.auto_white_balance));
   this->declare_parameter("white_balance_red_offset",  rclcpp::ParameterValue(defaults.white_balance_red_offset));
@@ -681,8 +704,8 @@ const CameraParameters Node::fetchROSCameraParameters() const {
   this->get_parameter<int>("image_left",                parameters.image_left);
   this->get_parameter<int>("image_top",                 parameters.image_top);
   this->get_parameter<std::string>("color_mode",        parameters.color_mode);
-  this->get_parameter<unsigned int>("subsampling",      parameters.subsampling);
-  this->get_parameter<unsigned int>("binning",          parameters.binning);
+  //this->get_parameter<unsigned int>("subsampling",      parameters.subsampling);
+  //this->get_parameter<unsigned int>("binning",          parameters.binning);
   this->get_parameter<double>("sensor_scaling",         parameters.sensor_scaling);
   this->get_parameter<bool>("auto_gain",                parameters.auto_gain);
   this->get_parameter<int>("master_gain",               parameters.master_gain);
@@ -693,6 +716,7 @@ const CameraParameters Node::fetchROSCameraParameters() const {
   this->get_parameter<int>("software_gamma",            parameters.software_gamma);
   this->get_parameter<bool>("auto_exposure",            parameters.auto_exposure);
   this->get_parameter<double>("auto_exposure_reference",parameters.auto_exposure_reference);
+  this->get_parameter<int>("focus_value",               parameters.focus_value);
   this->get_parameter<double>("exposure",               parameters.exposure);
   this->get_parameter<bool>("auto_white_balance",       parameters.auto_white_balance);
   this->get_parameter<int>("white_balance_red_offset",  parameters.white_balance_red_offset);
@@ -773,6 +797,7 @@ rcl_interfaces::msg::SetParametersResult Node::onParameterChange(std::vector<rcl
       else if (parameter.get_name() == "software_gamma" ) { new_parameters.software_gamma = parameter.as_int(); }
       else if (parameter.get_name() == "auto_exposure" ) { new_parameters.auto_exposure = parameter.as_bool(); }
       else if (parameter.get_name() == "auto_exposure_reference" ) { new_parameters.auto_exposure_reference = parameter.as_double(); }
+      else if (parameter.get_name() == "focus_value" ) { new_parameters.focus_value = parameter.as_int(); }
       else if (parameter.get_name() == "exposure" ) { new_parameters.exposure = parameter.as_double(); }
       else if (parameter.get_name() == "auto_white_balance" ) { new_parameters.auto_white_balance = parameter.as_bool(); }
       else if (parameter.get_name() == "white_balance_red_offset" ) { new_parameters.white_balance_red_offset = parameter.as_int(); }

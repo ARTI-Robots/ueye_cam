@@ -126,7 +126,8 @@ struct CameraParameters {
   int software_gamma;                /**< Software gamma percentage [min:1, max:100] */
 
   bool auto_exposure;                /**< Auto exposure (aka auto shutter)*/
-  double auto_exposure_reference;    /**< Target for the exposure/gain brightness controller" [min:0.0, max:255.0]*/
+  double auto_exposure_reference;
+  int focus_value;    /**< Target for the exposure/gain brightness controller" [min:0.0, max:255.0]*/
   double exposure;                   /**< Exposure value (ms) [min:0.0, max:300.0] */
 
   bool auto_white_balance;           /**< Auto white balance */
@@ -168,6 +169,7 @@ struct CameraParameters {
     software_gamma(100),
     auto_exposure(false),
     auto_exposure_reference(128.0),
+    focus_value(135),
     exposure(33.0),
     auto_white_balance(false),
     white_balance_red_offset(0),

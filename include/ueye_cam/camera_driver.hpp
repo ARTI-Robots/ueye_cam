@@ -215,7 +215,7 @@ public:
   /**
    * Updates current camera handle's software gamma to specified parameter.
    *
-   * According to ids this is only possible when the color mode is debayered by the ids driver 
+   * According to ids this is only posssible when the color mode is debayered by the ids driver 
    *
    * \param software_gamma gamma value in percentage
    *
@@ -264,6 +264,10 @@ public:
    *
    * \return IS_SUCCESS if successful, error flag otherwise (see err2str).
    */
+
+  INT setFocus(INT& focus_value);
+
+
   INT setFrameRate(bool& auto_frame_rate, double& frame_rate_hz);
 
   /**

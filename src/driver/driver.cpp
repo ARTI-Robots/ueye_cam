@@ -909,7 +909,7 @@ INT Driver::setGain(bool& auto_gain, INT& master_gain_prc, INT& red_gain_prc,
   if (auto_gain) {
     // Set auto gain
     pval1 = 1;
-    if ((is_err = is_SetAutoParameter(cam_handle_, IS_SET_ENABLE_AUTO_SENSOR_GAIN,
+    if ((is_err = is_SetAutoParameter(cam_handle_, IS_SET_ENABLE_AUTO_SENSOR_GAIN_SHUTTER,
         &pval1, &pval2)) != IS_SUCCESS) {
       if ((is_err = is_SetAutoParameter(cam_handle_, IS_SET_ENABLE_AUTO_GAIN,
           &pval1, &pval2)) != IS_SUCCESS) {
@@ -919,7 +919,7 @@ INT Driver::setGain(bool& auto_gain, INT& master_gain_prc, INT& red_gain_prc,
     }
   } else {
     // Disable auto gain
-    if ((is_err = is_SetAutoParameter(cam_handle_, IS_SET_ENABLE_AUTO_SENSOR_GAIN,
+    if ((is_err = is_SetAutoParameter(cam_handle_, IS_SET_ENABLE_AUTO_SENSOR_GAIN_SHUTTER,
         &pval1, &pval2)) != IS_SUCCESS) {
       if ((is_err = is_SetAutoParameter(cam_handle_, IS_SET_ENABLE_AUTO_GAIN,
           &pval1, &pval2)) != IS_SUCCESS) {
@@ -1105,6 +1105,25 @@ INT Driver::setWhiteBalance(bool& auto_white_balance, INT& red_offset,
 
   return is_err;
 }
+
+
+INT Driver::setFocus(INT &focus_value){
+  if (!isConnected()) return IS_INVALID_CAMERA_HANDLE;
+
+  INT is_err = IS_SUCCESS;
+
+  if ((is_err = is_Focus(cam_handle_, FOC_CMD_SET_MANUAL_FOCUS, &focus_value, sizeof(focus_value))) != IS_SUCCESS) {
+      // Log or handle the error
+      // LogError("Failed to set manual focus", is_err);
+      return is_err;
+    }
+
+  camera_parameters_.focus_value= focus_value;
+
+  return is_err;
+
+}
+
 
 
 INT Driver::setFrameRate(bool& auto_frame_rate, double& frame_rate_hz) {

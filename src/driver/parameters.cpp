@@ -155,15 +155,16 @@ void CameraParameters::validate() const {
   // software_gamma
   // auto_exposure
   // auto_exposure_reference
+  if (focus_value<112) { ostream << " - focus value must be >= 112 [focus_value: " << focus_value << "]\n"; }
   if (exposure < 0.0) { ostream << " - exposure must be >= 0 [exposure: " << exposure << "]\n"; }
   // auto_white_balance
-  if (white_balance_red_offset < -50 ||
-      white_balance_red_offset > 50) {
+  if (white_balance_red_offset < 0 ||
+      white_balance_red_offset > 100) {
     ostream << " - white_balance_red_offset must be in [-50,-50] [offset: ";
     ostream << white_balance_red_offset << "]\n";
   }
-  if (white_balance_blue_offset < -50 ||
-      white_balance_blue_offset > 50) {
+  if (white_balance_blue_offset < 0 ||
+      white_balance_blue_offset > 100) {
     ostream << " - white_balance_blue_offset must be in [-50,-50] [offset: ";
     ostream << white_balance_blue_offset << "]\n";
   }
@@ -218,6 +219,7 @@ std::string CameraParameters::to_str() const {
   ostream << "  Software Gamma:\t\t" << software_gamma << "\n";
   ostream << "  Auto Exposure:\t\t" << auto_exposure << "\n";
   ostream << "  Auto Exposure Reference:\t" << auto_exposure_reference << "\n";
+  ostream << "  focus_value:\t\t\t" << focus_value << "\n";
   ostream << "  Exposure (ms):\t\t" << exposure << "\n";
   ostream << "  Auto White Balance:\t\t" << auto_white_balance << "\n";
   ostream << "  WB Red Offset:\t\t" << white_balance_red_offset << "\n";
