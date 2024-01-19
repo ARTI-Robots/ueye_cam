@@ -50,6 +50,11 @@ import yaml
 
 import launch
 import launch_ros.actions
+from launch.actions import EmitEvent, RegisterEventHandler
+from launch_ros.actions import LifecycleNode
+from launch_ros.events.lifecycle import ChangeState
+from launch_ros.event_handlers import OnStateTransition
+from lifecycle_msgs.msg import Transition
 
 ##############################################################################
 # Helpers
@@ -76,17 +81,79 @@ def generate_launch_description() -> launch.LaunchDescription:
         the launch description
     """
     launch_nodes = []
-    launch_nodes.append(
-        launch_ros.actions.Node(
-            package='ueye_cam',
-            name="ueye",
-            executable="standalone_node",  # dashing: node_executable, foxy: executable
-            output='screen',  # 'both'?
-            emulate_tty=True,  # dashing: prefix=['stdbuf -o L'], foxy, just use emulate_tty=True
-            parameters=[load_parameters()]
+
+    camera_publisher_node = LifecycleNode(
+        package='ueye_cam',
+        name="ueye",
+        namespace='',
+        executable="standalone_node",  # dashing: node_executable, foxy: executable
+        output='screen',  # 'both'?
+        emulate_tty=True,  # dashing: prefix=['stdbuf -o L'], foxy, just use emulate_tty=True
+        parameters=[load_parameters()],
+    )
+
+    detector_node = LifecycleNode(
+        package='load_unit_code_detection',
+        name="detector",
+        namespace='',
+        executable="detector",  # dashing: node_executable, foxy: executable
+        output='screen',  # 'both'?
+        emulate_tty=True,  # dashing: prefix=['stdbuf -o L'], foxy, just use emulate_tty=True
+        parameters=[load_parameters()],
         )
-    )
-    launch_nodes.append(
-        launch.actions.LogInfo(msg=["Bob the robot, launching ueye_cam for you. Need a colander?"])
-    )
-    return launch.LaunchDescription(launch_nodes)
+
+    
+    return launch.LaunchDescription([
+        camera_publisher_node,
+        detector_node,
+
+        # Configure the camera publisher
+        EmitEvent(
+            event=ChangeState(
+                lifecycle_node_matcher=lambda event: event == camera_publisher_node,
+                transition_id=Transition.TRANSITION_CONFIGURE
+            )
+        ),
+
+        # Activate the camera publisher when configured
+        RegisterEventHandler(
+            OnStateTransition(
+                target_lifecycle_node=camera_publisher_node,
+                start_state='configuring',
+                goal_state='inactive',
+                entities=[
+                    EmitEvent(
+                        event=ChangeState(
+                            lifecycle_node_matcher=lambda event: event == camera_publisher_node,
+                            transition_id=Transition.TRANSITION_ACTIVATE
+                        )
+                    ),
+                ],
+            )
+        ),
+
+        EmitEvent(
+            event=ChangeState(
+                lifecycle_node_matcher=lambda event: event == detector_node,
+                transition_id=Transition.TRANSITION_CONFIGURE
+            )
+        ),
+
+        # Activate the detector when configured
+        RegisterEventHandler(
+            OnStateTransition(
+                target_lifecycle_node=detector_node,
+                start_state='configuring',
+                goal_state='inactive',
+                entities=[
+                    EmitEvent(
+                        event=ChangeState(
+                            lifecycle_node_matcher=lambda event: event == detector_node,
+                            transition_id=Transition.TRANSITION_ACTIVATE
+                        )
+                    ),
+                ],
+            )
+        ),
+
+    ])
