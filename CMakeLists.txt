@@ -28,6 +28,7 @@ endif()
 ##############################################################################
 
 find_package(ament_cmake REQUIRED)
+find_package(image_pipeline REQUIRED)
 find_package(camera_calibration_parsers REQUIRED)
 find_package(camera_info_manager REQUIRED)
 find_package(image_transport REQUIRED)

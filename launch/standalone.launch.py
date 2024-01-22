@@ -92,20 +92,9 @@ def generate_launch_description() -> launch.LaunchDescription:
         parameters=[load_parameters()],
     )
 
-    detector_node = LifecycleNode(
-        package='load_unit_code_detection',
-        name="detector",
-        namespace='',
-        executable="detector",  # dashing: node_executable, foxy: executable
-        output='screen',  # 'both'?
-        emulate_tty=True,  # dashing: prefix=['stdbuf -o L'], foxy, just use emulate_tty=True
-        parameters=[load_parameters()],
-        )
-
     
     return launch.LaunchDescription([
         camera_publisher_node,
-        detector_node,
 
         # Configure the camera publisher
         EmitEvent(
@@ -132,28 +121,6 @@ def generate_launch_description() -> launch.LaunchDescription:
             )
         ),
 
-        EmitEvent(
-            event=ChangeState(
-                lifecycle_node_matcher=lambda event: event == detector_node,
-                transition_id=Transition.TRANSITION_CONFIGURE
-            )
-        ),
-
-        # Activate the detector when configured
-        RegisterEventHandler(
-            OnStateTransition(
-                target_lifecycle_node=detector_node,
-                start_state='configuring',
-                goal_state='inactive',
-                entities=[
-                    EmitEvent(
-                        event=ChangeState(
-                            lifecycle_node_matcher=lambda event: event == detector_node,
-                            transition_id=Transition.TRANSITION_ACTIVATE
-                        )
-                    ),
-                ],
-            )
-        ),
+        
 
     ])
