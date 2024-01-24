@@ -1,5 +1,3 @@
-![Build Test (not for release)](https://github.com/anqixu/ueye_cam/workflows/Build%20Test%20(not%20for%20release)/badge.svg?branch=master&event=push)
-
 # UEye Cam Driver
 
 This software comes with a [BSD License](./LICENSE) and provides convenience APIs
@@ -7,34 +5,9 @@ This software comes with a [BSD License](./LICENSE) and provides convenience API
 
 ## Requirements
 
-**Buildtime**
-
-If you are just building the software, no IDS Software Suite installation is required.
-This package will fetch headers and libraries on-the-fly to result in a successful build.
-Note however, that these are not made available for a runtime environment. These headers
-and libraries are not installed to the install space and you'll also need to install
-the IDS discovery daemon.
-
-**Runtime**
-
-* [IDS uEye Software Suite](https://en.ids-imaging.com/downloads.html) >= 4.94 
-
-The IDS Software Suite installs headers, libraries, documentation and a daemon used for
-discovery of UEye cameras.
-
-Start the discovery daemon for ethernet connected cameras:
-
-```
-$ sudo systemctl start ueyeethdrc
-$ sudo /etc/init.d/ueyeethdrc start
-```
-
-To configure the cameras, do it via the `idscameramanager` graphical tool (should be reasonably
-self-explanatory) or via the command line tools:
-
-* Enumerate the network interfaces to be used for discovery (`/etc/ids/ueye/ueyeethd.conf`)
-* Configure the camera ip addresses (`ueyesetip`)
-* Configure the camera ids (`ueyesetid`)
+- [IDS uEye Software for the camera](https://en.ids-imaging.com/download-details/1009054.html?os=linux&version=&bus=64&floatcalc=#anc-software-305) 
+- [camera calibration files used to feed the ros2](https://github.com/ros-perception/image_pipeline/tree/humble)
+- tclap (Templatized C++ Command Line Parser Library): `sudo apt install libtclap-dev`
 
 ## Usage
 
@@ -52,23 +25,20 @@ file can be useful for parameters that it does not yet cover.
 
 **Quick Start**
 
-To get started, launch the standalone or component launcher. It is configured with a parameterisation that should enable connection to most IDS cameras.
+To get started, launch the standalone launcher. It is configured with a parameterization that should enable connection to most IDS cameras.
 
 ```
-# Install launcher / debugging / viz tools if you don't already have them
-$ sudo apt install ros-foxy-ros2launch ros-foxy-ros2param ros-foxy-ros2run ros-foxy-ros2topic ros-foxy-rqt-image-view
-
-# Uses ueye_cam/config/standalone.yaml
+# Uses ueye_cam/config/example_ros_configuration.yaml
 $ ros2 launch ueye_cam standalone.launch.py
 
-# In a seperate shell, visualise the stream
-$ ros2 run rqt_image_view rqt_image_view /ueye_cam/froody/image_raw
-
-# Play around with parameters
+# Play around with parameters:
 $ ros2 param list
 $ ros2 param set ueye_cam auto_gain false
 $ ros2 param describe ueye_cam red_gain
 $ ros2 param set ueye_cam red_gain 100
+
+# To deactivate the camera via lifecycle:
+$ ros2 lifecycle set /ueye 4
 ```
 
 **Configuration**
